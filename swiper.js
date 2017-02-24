@@ -39,7 +39,8 @@
       run: int,  // The duration.
     },
     v: {  // Vector.
-      dir: string,  // 'left', 'right', 'up', or 'down'
+      run: string,  // 'left', 'right', 'up', or 'down'
+      mag: string,  // same
       over: bool,  // Whether the distance traveled surpassed the `distMin`.
     },
   }
@@ -56,6 +57,14 @@
   DETAILS
 
   #HERE
+
+
+  TODO
+  - test on touch device
+  - remove unneeded functions
+  - documentation
+  - add statements for $conf.log
+  - Maybe add a debounce to the events?
 */
 
 
@@ -123,7 +132,8 @@ function Swiper(params) {
             },
 
             v: {
-                dir: null,
+                run: null,
+                mag: null,
                 over: false,
             },
         };
@@ -226,46 +236,76 @@ function Swiper(params) {
 
 
     function trackChanges(evt) {
-        // The magnitude must be signed. Left/right and up/down only
-        // make sense if it's signed.
-        $delta.x.mag = (evt.clientX - $delta.x.start);
-        $delta.y.mag = (evt.clientY - $delta.y.start);
+        // The change since the last change tracked.
+        var _delta = {
+            x: (evt.clientX - $delta.x.end),
+            y: (evt.clientY - $delta.y.end),
+        };
+        _delta.absX = Math.abs(_delta.x);
+        _delta.absY = Math.abs(_delta.y);
 
-        // Increment the run before setting the new ends because the
-        // previous ends are needed to calculate the run.
-        $delta.x.run += Math.abs(evt.clientX - $delta.x.end);
-        $delta.y.run += Math.abs(evt.clientY - $delta.y.end);
+        // If there hasn't been a change, don't bother.
+        if ((_delta.absX > 0) && (_delta.absY > 0)) {
+            // The magnitude must be signed. Left/right and up/down only
+            // make sense if it's signed.
+            $delta.x.mag = (evt.clientX - $delta.x.start);
+            $delta.y.mag = (evt.clientY - $delta.y.start);
 
-        // Just record the new end points.
-        $delta.x.end = evt.clientX;
-        $delta.y.end = evt.clientY;
+            // Increment the run before setting the new ends because the
+            // previous ends are needed to calculate the run.
+            $delta.x.run += _delta.absX;
+            $delta.y.run += _delta.absY;
 
-        $delta.t.run = (new Date().getTime() - $delta.t.start);
+            // Just record the new end points.
+            $delta.x.end = evt.clientX;
+            $delta.y.end = evt.clientY;
 
-        if ($conf.dirLim) {
-            if ($conf.dirLim == 'y') {
-                $delta.v.dir = ($delta.y.mag > 0) ? 'down' : 'up';
-                var dist_check = $delta.y.mag;
+            $delta.t.run = (new Date().getTime() - $delta.t.start);
+
+            if ($conf.dirLim) {
+                if ($conf.dirLim == 'y') {
+                    $delta.v.run = (_delta.y < 0) ? 'up' : 'down';
+                    $delta.v.mag = ($delta.y.mag < 0) ? 'up' : 'down';
+                    var dist_check = $delta.y.mag;
+                }
+                else {
+                    $delta.v.run = (_delta.x < 0) ? 'left' : 'right';
+                    $delta.v.mag = ($delta.x.mag < 0) ? 'left' : 'right';
+                    var dist_check = $delta.x.mag;
+                }
             }
             else {
-                $delta.v.dir = ($delta.x.mag > 0) ? 'right' : 'left';
-                var dist_check = $delta.x.mag;
+                $delta.v.run = checkDirection(
+                    [_delta.x, 'left', 'right'],
+                    [_delta.y, 'up', 'down']
+                )[1];
+
+                var _check = checkDirection(
+                    [$delta.x.mag, 'left', 'right'],
+                    [$delta.y.mag, 'up', 'down']
+                );
+                var dist_check = _check[0];
+                $delta.v.mag = _check[1];
             }
+
+            $delta.v.over = (Math.abs(dist_check) > $conf.distMin) ? true : false;
+        }
+    }
+
+
+
+    // Pass this two three-item arrays. Each array must contain a
+    // value in its 0th spot, direction names in its 1st and 2nd.
+    // The 1st direction should be the result when the direction is
+    // negative (left, up). It returns a two-item array containing,
+    // 0th, the greater distance, and, 1st, the matching direction.
+    function checkDirection(dirA, dirB) {
+        if (Math.abs(dirB[0]) < Math.abs(dirA[0])) {
+            return [dirA[0], (dirA[0] < 0) ? dirA[1] : dirA[2]];
         }
         else {
-            if (Math.abs($delta.x.mag) > Math.abs($delta.y.mag)) {
-                $delta.v.dir = ($delta.x.mag > 0) ? 'right' : 'left';
-                var dist_check = $delta.x.mag;
-            }
-            else {
-                $delta.v.dir = ($delta.y.mag > 0) ? 'down' : 'up';
-                var dist_check = $delta.y.mag;
-            }
+            return [dirB[0], (dirB[0] < 0) ? dirB[1] : dirB[2]];
         }
-
-        $delta.v.over = (Math.abs(dist_check) > $conf.distMin) ? true : false;
-
-        // console.log($delta.runDir + ' && ' + $delta.magDir);
     }
 
 

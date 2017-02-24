@@ -35,7 +35,7 @@
          .swipe-note-wrap {
              width: 100%;
              overflow: auto;
-             margin: 10px;
+             margin: 0 auto;
              padding: 10px;
              border: 1px solid;
          }
@@ -51,12 +51,12 @@
                  onDrag: function(swipe) {
                      // console.log("Swiping:");
                      // console.log(swipe);
-                     document.getElementById('swipe-note').innerHTML = "Swiping " + swipe.v.dir;
+                     document.getElementById('swipe-note').innerHTML = "Swiping " + swipe.v.run;
                  },
                  onEnd: function(swipe) {
-                     // console.log("Swiped:");
-                     // console.log(swipe);
-                     document.getElementById('swipe-note').innerHTML = "Swiped " + swipe.v.dir;
+                     console.log("Swiped:");
+                     console.log(swipe);
+                     document.getElementById('swipe-note').innerHTML = "Swiped " + swipe.v.mag + " overall";
                  },
              });
 
@@ -74,7 +74,7 @@
         <div id="swipe-box" class="box">
             <h3 class="instructions">Swipe / click & drag in me</h3>
             <pre class="swipe-note-wrap">
-                <code id="swipe-note"</code>
+                <code id="swipe-note"></code>
             </pre>
         </div>
     </body>
