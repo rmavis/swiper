@@ -14,8 +14,38 @@
     target: document.getElementById('whatever'),
     onDrag: someCoolFunction(),
     onEnd: someOtherFunction(),
-    distMin: 200
+    distMin: 200,
   });
+
+  Swiper will add mosue and touch event listeners to the `target`
+  element. As the user drags around on the element, it will call the
+  `onDrag` function, passing it an object that looks like:
+  {
+    x: {  // The x coordinate.
+      start: int,  // The start of the event.
+      end: int,  // The end of the event.
+      run: int,  // The gross distance traveled.
+      mag: int,  // The net distance traveled.
+    },
+    y: {  // The y coordinate.
+      start: int,
+      end: int,
+      run: int,
+      mag: int,
+    },
+    t: {  // Timestamps.
+      start: int,  // When the event started.
+      end: int,  // When the event ended.
+      run: int,  // The duration.
+    },
+    v: {  // Vector.
+      dir: string,  // 'left', 'right', 'up', or 'down'
+      over: bool,  // Whether the distance traveled surpassed the `distMin`.
+    },
+  }
+
+  It will pass the same object to the `onEnd` function when the
+  event cancels or ends naturally.
 
 
   DEPENDENCIES
@@ -25,34 +55,7 @@
 
   DETAILS
 
-  Swiper adds event listeners to the `target` that check the start
-  and end times and touch/click points of the touch or click-and-drag
-  event. It then does some simple calculations and returns an object
-  containing a summary of the event.
-
-  If `onDrag` or `onEnd` are specified, then Swiper will fire those
-  functions, passing the return from Swiper as the parameter.
-
-  The object returned by Swiper looks like:
-  {
-    x.start: $delta.x.start,  // The starting coordinates.
-    startY: $delta.startY,
-    startT: $delta.startT,  // The starting time.
-    endX: $delta.endX,  // The ending coordinates.
-    endY: $delta.endY,
-    endT: $delta.endT,  // The ending time.
-    runX: $delta.runX,  // The gross distance between the starting
-    runY: $delta.runY,  // and ending coordinates.
-    runT: $delta.runT,
-    magX: $delta.x.mag,  // The net distance between the
-    magY: $delta.magY,  // starting and ending points.
-    runDir: $delta.runDir,  // The overall direction ran.
-    magDir: $delta.magDir,  // The initial up/down or left/right trajectory.
-    swipeDir: $delta.swipeDir  // The swipe direction.
-  }
-
-  All properties are integers except the *Dir properties, which will be
-  'up', 'down', 'left', or 'right'.
+  #HERE
 */
 
 
@@ -72,7 +75,8 @@ function Swiper(params) {
             // The target element.
             target: null,
             // Limit the swipe direction to left/right or up/down.
-            // Valid values are `x`, `y`, or falsy.
+            // Valid values are `x`, `y`, or falsy. If a truthy value
+            // is present and is not `y`, then `x` will be assumed.
             dirLim: null,
             // The minimum number of pixels traveled required to
             // register the swipe direction.
@@ -241,12 +245,12 @@ function Swiper(params) {
         if ($conf.dirLim) {
             if ($conf.dirLim == 'y') {
                 $delta.v.dir = ($delta.y.mag > 0) ? 'down' : 'up';
+                var dist_check = $delta.y.mag;
             }
             else {
                 $delta.v.dir = ($delta.x.mag > 0) ? 'right' : 'left';
+                var dist_check = $delta.x.mag;
             }
-
-            var dist_check = $delta[$conf.dirLim].mag;
         }
         else {
             if (Math.abs($delta.x.mag) > Math.abs($delta.y.mag)) {
@@ -318,9 +322,10 @@ function Swiper(params) {
     function handleMouseDown(evt) {
         evt = checkEvent(evt);
 
-        if (shouldPreventDefault(evt)) {
+        // When should the default not be prevented?  #HERE
+        // if (shouldPreventDefault(evt)) {
             evt.preventDefault();
-        }
+        // }
 
         startSwipe(evt);
     }
@@ -411,20 +416,20 @@ function Swiper(params) {
 
 
 
-    function shouldPreventDefault(evt) {
-        var tagName = evt.target.tagName;
+    // function shouldPreventDefault(evt) {
+    //     var tagName = evt.target.tagName;
 
-        // This could be expanded.
-        var badTags = ['IMG'];
+    //     // This could be expanded.
+    //     var badTags = ['IMG'];
 
-        for (var i = 0; i < badTags.length; i++) {
-            if (badTags[i] == tagName) {
-                return true;
-            }
-        }
+    //     for (var i = 0; i < badTags.length; i++) {
+    //         if (badTags[i] == tagName) {
+    //             return true;
+    //         }
+    //     }
 
-        return false;
-    }
+    //     return false;
+    // }
 
 
 
