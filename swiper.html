@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="en">
+
+    <head>
+        <style>
+         * {
+             -moz-box-sizing: border-box;
+             -webkit-box-sizing: border-box;
+             box-sizing: border-box;
+         }
+
+         body {
+             position: relative;
+             margin: 0;
+             padding: 10px;
+             text-align: center;
+         }
+
+         .box {
+             position: relative;
+             margin: 0 auto;
+             padding: 0;
+             width: 60%;
+             border: 2px solid;
+         }
+
+         .instructions {
+             margin: 20px auto;
+             padding: 0;
+             font-size: 42px;
+             line-height: 100%;
+             font-weight: 500;
+         }
+
+         .swipe-note-wrap {
+             width: 100%;
+             overflow: auto;
+             margin: 10px;
+             padding: 10px;
+             border: 1px solid;
+         }
+        </style>
+
+
+        <script type="text/javascript" src="swiper.js"></script>
+
+        <script>
+         function init() {
+             var swpr = new Swiper({
+                 target: document.getElementById('swipe-box'),
+                 onDrag: function(swipe) {
+                     // console.log("Swiping:");
+                     // console.log(swipe);
+                     document.getElementById('swipe-note').innerHTML = "Swiping " + swipe.v.dir;
+                 },
+                 onEnd: function(swipe) {
+                     // console.log("Swiped:");
+                     // console.log(swipe);
+                     document.getElementById('swipe-note').innerHTML = "Swiped " + swipe.v.dir;
+                 },
+                 dirLim: 'y',
+             });
+
+             console.log("Initialized new swiper:");
+             console.log(swpr);
+         }
+
+         window.onload = init;
+        </script>
+    </head>
+
+
+
+    <body>
+        <div id="swipe-box" class="box">
+            <h3 class="instructions">Swipe / click & drag in me</h3>
+            <pre class="swipe-note-wrap">
+                <code id="swipe-note"</code>
+            </pre>
+        </div>
+    </body>
+
+</html>

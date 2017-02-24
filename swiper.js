@@ -1,398 +1,476 @@
 /*
   SWIPER
-  This is a simple class to detect swipes.
-  It's core is largely inspired by / adapted from:
+
+  This is a simple class to detect swipes. Its core is largely
+  inspired by / adapted from:
   http://www.javascriptkit.com/javatutors/touchevents2.shtml
 
 
-  To initialize the Swiper, pass it an object:
+  USAGE
 
-  var swpr = new Swiper({
-  element: document.getElementById('whatever-is-good'),
-  onDrag: someCoolFunction(),
-  onEnd: someCoolFunction()
+  To initialize a swiper, pass Swiper an object:
+
+  var swiper = new Swiper({
+    target: document.getElementById('whatever'),
+    onDrag: someCoolFunction(),
+    onEnd: someOtherFunction(),
+    distMin: 200
   });
 
 
-  Swiper adds event listeners to the 'element' that check the start and end times
-  and touch/click points of the touch or click-and-drag event. It then does some
-  simple calculations and returns an object containing a summary of the event.
+  DEPENDENCIES
 
-  If 'onDrag' or 'onEnd' are specified, Swiper will fire those functions with the
-  direction string as the parameter.
+  None.
+
+
+  DETAILS
+
+  Swiper adds event listeners to the `target` that check the start
+  and end times and touch/click points of the touch or click-and-drag
+  event. It then does some simple calculations and returns an object
+  containing a summary of the event.
+
+  If `onDrag` or `onEnd` are specified, then Swiper will fire those
+  functions, passing the return from Swiper as the parameter.
 
   The object returned by Swiper looks like:
   {
-  startX: this.startX,  // The starting coordinates.
-  startY: this.startY,
-  startT: this.startT,  // The starting time.
-  endX: this.endX,  // The ending coordinates.
-  endY: this.endY,
-  endT: this.endT,  // The ending time.
-  runX: this.runX,  // The net distance between the starting
-  runY: this.runY,  // and ending coordinates.
-  runT: this.runT,
-  magX: this.magX,  // The gross distance between the
-  magY: this.magY,  // starting and ending points.
-  runDir: this.runDir,  // The overall direction ran.
-  magDir: this.magDir,  // The initial up/down or left/right trajectory.
-  swipeDir: this.swipeDir  // The swipe direction.
+    x.start: $delta.x.start,  // The starting coordinates.
+    startY: $delta.startY,
+    startT: $delta.startT,  // The starting time.
+    endX: $delta.endX,  // The ending coordinates.
+    endY: $delta.endY,
+    endT: $delta.endT,  // The ending time.
+    runX: $delta.runX,  // The gross distance between the starting
+    runY: $delta.runY,  // and ending coordinates.
+    runT: $delta.runT,
+    magX: $delta.x.mag,  // The net distance between the
+    magY: $delta.magY,  // starting and ending points.
+    runDir: $delta.runDir,  // The overall direction ran.
+    magDir: $delta.magDir,  // The initial up/down or left/right trajectory.
+    swipeDir: $delta.swipeDir  // The swipe direction.
   }
 
   All properties are integers except the *Dir properties, which will be
   'up', 'down', 'left', or 'right'.
-
 */
-
 
 
 function Swiper(params) {
 
+    /*
+     * Init, config, etc.
+     */
 
-    this.init = function(pobj) {
-        // The element. This is required.
-        this.target = pobj.element;
-
-        // The minimum distance required to register a swipe.
-        this.distMinLimit = pobj.distanceMin || 150;
-
-        // The maximum deviation from that direction.
-        this.distDevLimit = pobj.distanceDev || 100;
-        this.distMagLimit = (this.distDevLimit / 4);
-
-        // The min and max time required to register a swipe.
-        this.runTimeMin = pobj.runtimeMin || 100;
-        this.runTimeMax = pobj.runtimeMax || false;
-
-        // The callback functions.
-        this.fireOnDrag = pobj.onDrag || null;
-        this.fireOnEnd = pobj.onEnd || null;
-
-        // For testing.
-        // this.cntbox = document.getElementById('event-counter');
-        // this.outbox = document.getElementById('event-logger');
-
-        this.addListeners();
-        this.reset();
-    };
+    var $conf = { },
+        $delta = { };
 
 
 
-    /* handleEvent is a special function that gets called by `this`
-     * when the element's listener is bound only to `this`. This allows
-     * the functions in `this` to access the variables declared above.
-     * See more: https://developer.mozilla.org/en-US/docs/Web/API/EventTarget.addEventListener */
-
-    this.handleEvent = function(evt) {
-        if (!evt) {var evt = window.event;}
-        this.evt = evt;
-        this.evt.stopPropagation();
-
-        // For testing.
-        // this.cntbox.innerHTML = parseInt(this.cntbox.innerHTML) + 1;
-        // this.outbox.innerHTML = this.evt.type + ' && ' + window.event.type;
-
-        // Touch events.
-        if (this.evt.type.indexOf('touch') == 0) {
-            if (this.evt.type == 'touchstart') {
-                this.start();
-            }
-            else if (this.evt.type == 'touchmove') {
-                this.move();
-            }
-            else if ((this.evt.type == 'touchend') ||
-                     (this.evt.type == 'touchcancel')) {
-                this.end();
-            }
-            else {
-                // console.log("Unhandled touch event type: " + this.evt.type);
-            }
-        }
-
-        // Mouse events.
-        else {
-            if (this.evt.type == 'mousedown') {
-                this.start();
-            }
-            else if ((this.evt.type == 'mousemove') && (this.isDragging())) {
-                this.move();
-            }
-            else if (this.evt.type == 'mouseup') {
-                this.end();
-            }
-            else if ((this.evt.type == 'mouseout') && (this.isMouseOffTarget())) {
-                this.end();
-            }
-            else {
-                // console.log("Unhandled mouse event type: " + this.evt.type);
-            }
-        }
-    };
-
-
-
-    this.start = function() {
-        if ((this.evt.type == 'mousedown') && (this.shouldPreventDefault())) {
-            this.evt.preventDefault();
-        }
-
-        this.startT = new Date().getTime();
-
-        if (this.evt.changedTouches) {
-            var touchObj = this.evt.changedTouches[0];
-            this.startX = touchObj.pageX;
-            this.startY = touchObj.pageY;
-        }
-        else {
-            this.startX = this.evt.clientX;
-            this.startY = this.evt.clientY;
-        }
-
-        this.prepForDrag();
-    };
-
-
-
-    this.move = function() {
-        this.trackChanges();
-
-        if ((this.evt.type == 'touchmove') &&
-            ((this.runDir == 'left') || (this.runDir == 'right'))) {
-            this.evt.preventDefault();
-        }
-
-        if (this.fireOnDrag) {
-            this.fireOnDrag(this.callbackObj());
-        }
-
-        // For testing.
-        // this.outbox.innerHTML += ' && ' + this.runDir + ' && ' + this.magDir;
-    };
-
-
-
-    this.end = function() {
-        this.trackChanges(true);
-        this.dragIsDone();
-
-        if ((!this.runTimeMax) ||
-            ((this.runTimeMax) && (this.runT <= this.runTimeMax))) {
-            this.getSwipeDir();
-        }
-
-        if (this.fireOnEnd) {
-            this.fireOnEnd(this.callbackObj());
-        }
-
-        this.reset();
-    };
-
-
-
-    this.trackChanges = function(last) {
-        if (this.evt.changedTouches) {
-            var touchObj = this.evt.changedTouches[0];
-            this.endX = touchObj.pageX;
-            this.endY = touchObj.pageY;
-        }
-        else {
-            this.endX = this.evt.clientX;
-            this.endY = this.evt.clientY;
-        }
-
-        this.runX = (this.endX - this.startX);
-        this.runY = (this.endY - this.startY);
-        this.runT = (this.endT - this.startT);
-
-        this.magX += Math.abs(this.endX - this.startX);
-        this.magY += Math.abs(this.endY - this.startY);
-
-        this.setTrajectories();
-
-        if (last) {
-            this.endT = new Date().getTime();
-        }
-    };
-
-
-
-    this.setTrajectories = function() {
-        if (Math.abs(this.runX) > Math.abs(this.runY)) {
-            this.runDir = (this.runX > 0) ? 'right' : 'left';
-        }
-        else {
-            this.runDir = (this.runY > 0) ? 'down' : 'up';
-        }
-
-        if ((!this.magDir) &&
-            ((this.magX >= this.distMagLimit) || (this.magY >= this.distMagLimit))) {
-            if (this.magX > this.magY) {
-                this.magDir = (this.runX > 0) ? 'right' : 'left';
-            }
-            else {
-                this.magDir = (this.runY > 0) ? 'down' : 'up';
-            }
-        }
-        // console.log(this.runDir + ' && ' + this.magDir);
-    };
-
-
-
-    this.getSwipeDir = function() {
-        if ((Math.abs(this.runX) >= this.distMinLimit) && 
-            (Math.abs(this.runY) <= this.distDevLimit)) {
-            this.swipeDir = (this.runX < 0) ? 'left' : 'right';
-        }
-        else if ((Math.abs(this.runY) >= this.distMinLimit) &&
-                 (Math.abs(this.runX) <= this.distDevLimit)) {
-            this.swipeDir = (this.runY < 0) ? 'up' : 'down';
-        }
-    };
-
-
-
-    this.callbackObj = function() {
-        var ret = {
-            startX: this.startX,
-            startY: this.startY,
-            startT: this.startT,
-            runX: this.runX,
-            runY: this.runY,
-            runT: this.runT,
-            magX: this.magX,
-            magY: this.magY,
+    function getDefaultConf() {
+        return {
+            // The target element.
+            target: null,
+            // Limit the swipe direction to left/right or up/down.
+            // Valid values are `x`, `y`, or falsy.
+            dirLim: null,
+            // The minimum number of pixels traveled required to
+            // register the swipe direction.
+            distMin: 150,
+            // The number of pixels the swipe can deviate from a
+            // trajectory before changing trajectories.
+            distDevLimit: 100,
+            // The maximum number of milliseconds a swipe can take.
+            // This is not currently checked.
+            runTimeMax: false,
+            // Neither is this.
+            runTimeMin: 100,
+            // A function to fire as the swipe occurs.
+            onDrag: false,
+            // A function to fire when the swipe ends.
+            onEnd: false,
+            // Want to see messages in the console?
+            log: false,
         };
+    }
 
-        ret.runDir = this.runDir;
-        ret.magDir = this.magDir;
 
-        if (this.endT) {
-            ret.endX = this.endX;
-            ret.endY = this.endY;
-            ret.endT = this.endT;
+
+    function getNewDeltas() {
+        return {
+            x: {
+                start: 0,
+                end: 0,
+                run: 0,
+                mag: 0,
+            },
+
+            y: {
+                start: 0,
+                end: 0,
+                run: 0,
+                mag: 0,
+            },
+
+            t: {
+                start: 0,
+                end: 0,
+                run: 0,
+            },
+
+            v: {
+                dir: null,
+                over: false,
+            },
+        };
+    }
+
+
+
+    function getPublicProperties() {
+        return {
+            set: setConfProperty,
+            stats: getCurrentDeltas,
+            stop: stopTracking,
+        };
+    }
+
+
+
+    function stopTracking() {
+        removeListeners($conf.target);
+    }
+
+
+
+    function getCurrentDeltas() {
+        return $delta;
+    }
+
+
+
+    function setConfProperty(key, val) {
+        if ($conf.hasOwnProperty(key)) {
+            $conf[key] = val;
+            return true;
+        }
+        else {
+            return false;
+        }
+    }
+
+
+
+    function init(arg) {
+        $conf = mergeObjects(getDefaultConf(), arg);
+
+        if ($conf.target) {
+            addListeners($conf.target);
+        }
+        else {
+            console.log("SWIPER ERROR: no `target` element given.")
         }
 
-        if (this.swipeDir) {
-            ret.swipeDir = this.swipeDir;
+        return getPublicProperties();
+    }
+
+
+
+
+
+    /*
+     * Swipe functions.
+     */
+
+    function startSwipe(evt) {
+        $delta = getNewDeltas();
+
+        $delta.t.start = new Date().getTime();
+
+        $delta.x.start = evt.clientX;
+        $delta.y.start = evt.clientY;
+
+        trackChanges(evt);
+
+        setElemDraggable($conf.target);
+    }
+
+
+
+    function trackSwipe(evt) {
+        trackChanges(evt);
+
+        if ($conf.onDrag) {
+            $conf.onDrag($delta);
+        }
+    }
+
+
+
+    function endSwipe(evt) {
+        trackChanges(evt);
+
+        $delta.t.end = new Date().getTime();
+
+        unsetElemDraggable($conf.target);
+
+        if ($conf.onEnd) {
+            $conf.onEnd($delta);
+        }
+    }
+
+
+
+    function trackChanges(evt) {
+        // The magnitude must be signed. Left/right and up/down only
+        // make sense if it's signed.
+        $delta.x.mag = (evt.clientX - $delta.x.start);
+        $delta.y.mag = (evt.clientY - $delta.y.start);
+
+        // Increment the run before setting the new ends because the
+        // previous ends are needed to calculate the run.
+        $delta.x.run += Math.abs(evt.clientX - $delta.x.end);
+        $delta.y.run += Math.abs(evt.clientY - $delta.y.end);
+
+        // Just record the new end points.
+        $delta.x.end = evt.clientX;
+        $delta.y.end = evt.clientY;
+
+        $delta.t.run = (new Date().getTime() - $delta.t.start);
+
+        if ($conf.dirLim) {
+            if ($conf.dirLim == 'y') {
+                $delta.v.dir = ($delta.y.mag > 0) ? 'down' : 'up';
+            }
+            else {
+                $delta.v.dir = ($delta.x.mag > 0) ? 'right' : 'left';
+            }
+
+            var dist_check = $delta[$conf.dirLim].mag;
+        }
+        else {
+            if (Math.abs($delta.x.mag) > Math.abs($delta.y.mag)) {
+                $delta.v.dir = ($delta.x.mag > 0) ? 'right' : 'left';
+                var dist_check = $delta.x.mag;
+            }
+            else {
+                $delta.v.dir = ($delta.y.mag > 0) ? 'down' : 'up';
+                var dist_check = $delta.y.mag;
+            }
         }
 
-        return ret;
-    };
+        $delta.v.over = (Math.abs(dist_check) > $conf.distMin) ? true : false;
+
+        // console.log($delta.runDir + ' && ' + $delta.magDir);
+    }
 
 
 
-    this.shouldPreventDefault = function() {
-        var ret = false,
-            tagName = this.evt.target.tagName;
+
+
+    /*
+     * Event-related functions.
+     */
+
+    function addListeners(elem) {
+        elem.addEventListener('touchstart', handleTouchStart, false);
+        elem.addEventListener('mousedown', handleMouseDown, false);
+
+        elem.addEventListener('touchmove', handleTouchMove, false);
+        elem.addEventListener('mousemove', handleMouseMove, false);
+
+        elem.addEventListener('touchend', handleTouchEnd, false);
+        elem.addEventListener('mouseup', handleMouseUp, false);
+
+        elem.addEventListener('touchcancel', handleTouchEnd, false);
+        elem.addEventListener('mouseout', handleMouseOut, false);
+    }
+
+
+    function removeListeners(elem) {
+        elem.removeEventListener('touchstart', handleTouchStart);
+        elem.removeEventListener('mousedown', handleMouseDown);
+
+        elem.removeEventListener('touchmove', handleTouchMove);
+        elem.removeEventListener('mousemove', handleMouseMove);
+
+        elem.removeEventListener('touchend', handleTouchEnd);
+        elem.removeEventListener('mouseup', handleMouseUp);
+
+        elem.removeEventListener('touchcancel', handleTouchEnd);
+        elem.removeEventListener('mouseout', handleMouseOut);
+    }
+
+
+    function checkEvent(evt) {
+        if (!evt) {var evt = window.event;}
+        evt.stopPropagation();
+        return evt;
+    }
+
+
+    function handleTouchStart(evt) {
+        evt = checkEvent(evt);
+        startSwipe(evt.changedTouches[0]);
+    }
+
+
+    function handleMouseDown(evt) {
+        evt = checkEvent(evt);
+
+        if (shouldPreventDefault(evt)) {
+            evt.preventDefault();
+        }
+
+        startSwipe(evt);
+    }
+
+
+    function handleTouchMove(evt) {
+        evt = checkEvent(evt);
+
+        // Why?  #HERE
+        // if (($delta.runDir == 'left') ||
+        //     ($delta.runDir == 'right')) {
+        //     evt.preventDefault();
+        // }
+
+        // Send the touch object instead of the event. Touch objects
+        // have `client(X|Y)` properties, which `trackChanges` needs.
+        trackSwipe(evt.changedTouches[0]);
+    }
+
+
+    function handleMouseMove(evt) {
+        if (isDragging($conf.target)) {
+            evt.preventDefault();
+            trackSwipe(checkEvent(evt));
+        }
+    }
+
+
+    function handleTouchEnd(evt) {
+        endSwipe(checkEvent(evt));
+    }
+
+
+    function handleMouseUp(evt) {
+        if (isDragging($conf.target)) {
+            endSwipe(checkEvent(evt));
+        }
+    }
+
+
+    function handleMouseOut(evt) {
+        evt = checkEvent(evt);
+
+        if ((isDragging($conf.target)) &&
+            (isMouseOffTarget(evt, $conf.target))) {
+            endSwipe(evt);
+        }
+    }
+
+
+
+
+
+    /*
+     * Utility functions.
+     */
+
+    function mergeObjects(obj1, obj2) {
+        if ($conf.log) {
+            console.log('Merging this object:');
+            console.log(obj1);
+            console.log('with this one:');
+            console.log(obj2);
+        }
+
+        var merged = { };
+
+        for (var key in obj1) {
+            if (obj1.hasOwnProperty(key)) {
+                if (obj2.hasOwnProperty(key)) {
+                    if ((obj1[key]) &&
+                        (obj1[key].constructor == Object) &&
+                        (obj2[key].constructor == Object)) {
+                        merged[key] = mergeObjects(obj1[key], obj2[key]);
+                    }
+                    else {
+                        merged[key] = obj2[key];
+                    }
+                }
+                else {
+                    merged[key] = obj1[key];
+                }
+            }
+        }
+
+        return merged;
+    }
+
+
+
+    function shouldPreventDefault(evt) {
+        var tagName = evt.target.tagName;
 
         // This could be expanded.
         var badTags = ['IMG'];
 
         for (var i = 0; i < badTags.length; i++) {
             if (badTags[i] == tagName) {
-                ret = true;
+                return true;
             }
         }
 
-        return true;
-    };
+        return false;
+    }
 
 
 
-    this.prepForDrag = function() {
-        this.target.setAttribute('draggable', 'draggable');
-    };
-
-    this.dragIsDone = function() {
-        this.target.removeAttribute('draggable');
-    };
-
-    this.isDragging = function() {
-        var ret = (this.target.getAttribute('draggable')) ? true : false;
-        return ret;
-    };
+    function setElemDraggable(elem) {
+        elem.setAttribute('draggable', 'draggable');
+    }
 
 
 
-    this.reset = function() {
-        this.startX = null;  // The initial X coordinate.
-        this.startY = null;  // The initial Y coordinate.
-        this.startT = null;  // The initial time.
-        this.endX = null;
-        this.endY = null;
-        this.endT = null;
-        this.runX = null;
-        this.runY = null;
-        this.runT = null;
-        this.magX = 0;  // These are 0 so they don't need to be checked as null in trackChanged.
-        this.magY = 0;
-
-        this.magDir = null;
-        this.runDir = null;
-        this.swipeDir = null;
-
-        this.evt = null;  // The event object.
-
-        this.dragIsDone();
-
-        // For testing.
-        // this.cntbox.innerHTML = '0';
-    };
+    function unsetElemDraggable(elem) {
+        elem.removeAttribute('draggable');
+    }
 
 
 
-    this.addListeners = function() {
-        this.target.addEventListener('touchstart', this, false);
-        this.target.addEventListener('mousedown', this, false);
-
-        this.target.addEventListener('touchmove', this, false);
-        this.target.addEventListener('mousemove', this, false);
-
-        this.target.addEventListener('touchend', this, false);
-        this.target.addEventListener('mouseup', this, false);
-
-        this.target.addEventListener('touchcancel', this, false);
-        this.target.addEventListener('mouseout', this, false);
-    };
-
-
-    this.removeListeners = function() {
-        this.target.removeEventListener('touchstart');
-        this.target.removeEventListener('mousedown');
-
-        this.target.removeEventListener('touchmove');
-        this.target.removeEventListener('mousemove');
-
-        this.target.removeEventListener('touchend');
-        this.target.removeEventListener('mouseup');
-
-        this.target.removeEventListener('touchcancel');
-        this.target.removeEventListener('mouseout');
-    };
+    function isDragging(elem) {
+        return (elem.getAttribute('draggable'));
+    }
 
 
 
-    this.isMouseOffTarget = function() {
-        return isMouseOffTarget(this.evt, this.target);
+    function isMouseOffTarget(evt, elem) {
+        var targ = null;
 
-        // var ret = false;
+        if (evt.type == 'mouseout') {
+            targ = evt.relatedTarget || evt.fromElement;
+        }
+        else if (evt.type == 'mouseover') {
+            targ = evt.target;
+        }
 
-        // if ((this.evt.type == 'mouseout') || (this.evt.type == 'mouseover')) {
-        //     var targ = this.evt.relatedTarget || this.evt.fromElement;
-        //     if (targ) {
-        //         while ((targ != document) && (targ != document.body) && (targ != this.target)) {
-        //             targ = targ.parentNode;
-        //         }
-        //         ret = (targ == this.target) ? false : true;
-        //     }
-        // }
+        if (targ) {
+            while ((targ != elem) &&
+                   (targ != document) &&
+                   (targ != document.body)) {
+                targ = targ.parentNode;
+            }
+        }
 
-        // return ret;
-    };
+        return (targ !== elem);
+    }
 
 
 
 
-    /* This needs to stay down here. */
-    this.init(params);
+
+    // This needs to stay down here.
+    return init(params);
 }
