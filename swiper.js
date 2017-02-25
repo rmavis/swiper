@@ -223,8 +223,6 @@ function Swiper(params) {
                 $conf.onDrag($delta);
             }
         }
-
-        return false;
     }
 
 
@@ -253,7 +251,7 @@ function Swiper(params) {
         _delta.absY = Math.abs(_delta.y);
 
         // If there hasn't been a change, don't bother.
-        if ((_delta.absX > 0) && (_delta.absY > 0)) {
+        if ((_delta.absX > 0) || (_delta.absY > 0)) {
             // The magnitude must be signed. Left/right and up/down only
             // make sense if it's signed.
             $delta.x.mag = (evt.clientX - $delta.x.start);
@@ -380,24 +378,14 @@ function Swiper(params) {
 
     function handleMouseDown(evt) {
         evt = checkEvent(evt);
-
-        // When should the default not be prevented?  #HERE
-        // if (shouldPreventDefault(evt)) {
-            evt.preventDefault();
-        // }
-
+        evt.preventDefault();
         startSwipe(evt);
     }
 
 
     function handleTouchMove(evt) {
         evt = checkEvent(evt);
-
-        // Why?  #HERE
-        // if (($delta.runDir == 'left') ||
-        //     ($delta.runDir == 'right')) {
-        //     evt.preventDefault();
-        // }
+        evt.preventDefault();
 
         // Send the touch object instead of the event. Touch objects
         // have `client(X|Y)` properties, which `trackChanges` needs.
@@ -407,8 +395,9 @@ function Swiper(params) {
 
     function handleMouseMove(evt) {
         if (isDragging($conf.target)) {
+            evt = checkEvent(evt);
             evt.preventDefault();
-            trackSwipe(checkEvent(evt));
+            trackSwipe(evt);
         }
     }
 
