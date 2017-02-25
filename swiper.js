@@ -26,17 +26,20 @@
       end: int,  // The end of the event.
       run: int,  // The gross distance traveled.
       mag: int,  // The net distance traveled.
+      inc: int,  // The difference between the last event.
     },
     y: {  // The y coordinate.
       start: int,
       end: int,
       run: int,
       mag: int,
+      inc: int,
     },
     t: {  // Timestamps.
       start: int,  // When the event started.
       end: int,  // When the event ended.
       run: int,  // The duration.
+      inc: int,  // The difference between the last event.
     },
     v: {  // Vector.
       run: string,  // 'left', 'right', 'up', or 'down'
@@ -116,6 +119,7 @@ function Swiper(params) {
                 end: 0,
                 run: 0,
                 mag: 0,
+                inc: 0,
             },
 
             y: {
@@ -123,12 +127,14 @@ function Swiper(params) {
                 end: 0,
                 run: 0,
                 mag: 0,
+                inc: 0,
             },
 
             t: {
                 start: 0,
                 end: 0,
                 run: 0,
+                inc: 0,
             },
 
             v: {
@@ -212,11 +218,13 @@ function Swiper(params) {
 
 
     function trackSwipe(evt) {
-        trackChanges(evt);
-
-        if ($conf.onDrag) {
-            $conf.onDrag($delta);
+        if (trackChanges(evt)) {
+            if ($conf.onDrag) {
+                $conf.onDrag($delta);
+            }
         }
+
+        return false;
     }
 
 
@@ -256,11 +264,17 @@ function Swiper(params) {
             $delta.x.run += _delta.absX;
             $delta.y.run += _delta.absY;
 
+            // The difference between the current end and the last.
+            $delta.x.inc = (evt.clientX - $delta.x.end);
+            $delta.y.inc = (evt.clientY - $delta.y.end);
+
             // Just record the new end points.
             $delta.x.end = evt.clientX;
             $delta.y.end = evt.clientY;
 
-            $delta.t.run = (new Date().getTime() - $delta.t.start);
+            var _t = new Date().getTime();
+            $delta.t.inc = (_t - $delta.t.run);
+            $delta.t.run = (_t - $delta.t.start);
 
             if ($conf.dirLim) {
                 if ($conf.dirLim == 'y') {
@@ -289,6 +303,11 @@ function Swiper(params) {
             }
 
             $delta.v.over = (Math.abs(dist_check) > $conf.distMin) ? true : false;
+
+            return true;
+        }
+        else {
+            return false;
         }
     }
 
