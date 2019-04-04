@@ -1,77 +1,6 @@
-/*
-  SWIPER
-
-  This is a simple class to detect swipes. Its core is largely
-  inspired by / adapted from:
-  http://www.javascriptkit.com/javatutors/touchevents2.shtml
-
-
-  USAGE
-
-  To initialize a swiper, pass Swiper an object:
-
-  var swiper = new Swiper({
-    target: document.getElementById('whatever'),
-    onDrag: someCoolFunction(),
-    onEnd: someOtherFunction(),
-    distMin: 200,
-  });
-
-  Swiper will add mosue and touch event listeners to the `target`
-  element. As the user drags around on the element, it will call the
-  `onDrag` function, passing it an object that looks like:
-  {
-    x: {  // The x coordinate.
-      start: int,  // The start of the event.
-      end: int,  // The end of the event.
-      run: int,  // The gross distance traveled.
-      mag: int,  // The net distance traveled.
-      inc: int,  // The difference between the last event.
-    },
-    y: {  // The y coordinate.
-      start: int,
-      end: int,
-      run: int,
-      mag: int,
-      inc: int,
-    },
-    t: {  // Timestamps.
-      start: int,  // When the event started.
-      end: int,  // When the event ended.
-      run: int,  // The duration.
-      inc: int,  // The difference between the last event.
-    },
-    v: {  // Vector.
-      run: string,  // 'left', 'right', 'up', or 'down'
-      mag: string,  // same
-      over: bool,  // Whether the distance traveled surpassed the `distMin`.
-    },
-  }
-
-  It will pass the same object to the `onEnd` function when the
-  event cancels or ends naturally.
-
-
-  DEPENDENCIES
-
-  None.
-
-
-  DETAILS
-
-  #HERE
-
-
-  TODO
-  - test on touch device
-  - remove unneeded functions
-  - documentation
-  - add statements for $conf.log
-  - Maybe add a debounce to the events?
-*/
-
-
-function Swiper(params) {
+// Swiper :: args -> api
+// args, api = see note on `init`
+function Swiper(args) {
 
     /*
      * Init, config, etc.
@@ -80,73 +9,80 @@ function Swiper(params) {
     var $conf = { },
         $delta = { };
 
-
-
+    // getDefaultConf :: void -> conf
+    // conf = an object as defined below
     function getDefaultConf() {
         return {
-            // The target element.
+            // Element
             target: null,
+            // string/boolean
             // Limit the swipe direction to left/right or up/down.
             // Valid values are `x`, `y`, or falsy. If a truthy value
             // is present and is not `y`, then `x` will be assumed.
             dirLim: null,
+            // int
             // The minimum number of pixels traveled required to
             // register the swipe direction.
             distMin: 150,
+            // int
             // The number of pixels the swipe can deviate from a
             // trajectory before changing trajectories.
             distDevLimit: 100,
+            // int/bool
             // The maximum number of milliseconds a swipe can take.
             // This is not currently checked.
             runTimeMax: false,
+            // int
             // Neither is this.
             runTimeMin: 100,
+            // deltas -> void
+            // deltas = see note on `getNewDeltas`
             // A function to fire as the swipe occurs.
             onDrag: false,
+            // delta -> void
             // A function to fire when the swipe ends.
             onEnd: false,
-            // Want to see messages in the console?
-            log: false,
         };
     }
 
-
-
+    // getNewDeltas :: void -> deltas
+    // deltas = an object as defined below
     function getNewDeltas() {
         return {
             x: {
-                start: 0,
-                end: 0,
-                run: 0,
-                mag: 0,
-                inc: 0,
+                start: 0,  // int
+                end: 0,  // int
+                run: 0,  // int
+                mag: 0,  // int
+                inc: 0,  // int
             },
 
             y: {
-                start: 0,
-                end: 0,
-                run: 0,
-                mag: 0,
-                inc: 0,
+                start: 0,  // int
+                end: 0,  // int
+                run: 0,  // int
+                mag: 0,  // int
+                inc: 0,  // int
             },
 
             t: {
-                start: 0,
-                end: 0,
-                run: 0,
-                inc: 0,
+                start: 0,  // int
+                end: 0,  // int
+                run: 0,  // int
+                inc: 0,  // int
             },
 
             v: {
-                run: null,
-                mag: null,
-                over: false,
+                run: null,  // string (up|down|left|right)
+                mag: null,  // string (up|down|left|right)
+                over: false,  // boolean
             },
         };
     }
 
-
-
+    // getPublicProperties :: void -> api
+    // api = an object as defined below
+    // The `api` object is intended to define Swiper's public API.
     function getPublicProperties() {
         return {
             set: setConfProperty,
@@ -155,39 +91,36 @@ function Swiper(params) {
         };
     }
 
-
-
+    // stopTracking :: void -> void
     function stopTracking() {
         removeListeners($conf.target);
     }
 
-
-
+    // getCurrentDeltas :: void -> deltas
+    // deltas = see `getNewDeltas`
     function getCurrentDeltas() {
         return $delta;
     }
 
-
-
+    // setConfProperty :: (string, a) -> bool
     function setConfProperty(key, val) {
         if ($conf.hasOwnProperty(key)) {
             $conf[key] = val;
             return true;
-        }
-        else {
+        } else {
             return false;
         }
     }
 
-
-
+    // init :: args -> api
+    // args = an object that can be merged with the default `conf`
+    // api = see `getPublicProperties`
     function init(arg) {
         $conf = mergeObjects(getDefaultConf(), arg);
 
         if ($conf.target) {
             addListeners($conf.target);
-        }
-        else {
+        } else {
             console.log("SWIPER ERROR: no `target` element given.")
         }
 
@@ -195,13 +128,11 @@ function Swiper(params) {
     }
 
 
-
-
-
     /*
      * Swipe functions.
      */
 
+    // startSwipe :: Event -> void
     function startSwipe(evt) {
         $delta = getNewDeltas();
 
@@ -215,8 +146,7 @@ function Swiper(params) {
         setElemDraggable($conf.target);
     }
 
-
-
+    // trackSwipe :: Event -> void
     function trackSwipe(evt) {
         if (trackChanges(evt)) {
             if ($conf.onDrag) {
@@ -225,8 +155,7 @@ function Swiper(params) {
         }
     }
 
-
-
+    // endSwipe :: Event -> void
     function endSwipe(evt) {
         trackChanges(evt);
 
@@ -239,8 +168,7 @@ function Swiper(params) {
         }
     }
 
-
-
+    // trackChanges :: Event -> bool
     function trackChanges(evt) {
         // The change since the last change tracked.
         var _delta = {
@@ -300,7 +228,7 @@ function Swiper(params) {
                 $delta.v.mag = _check[1];
             }
 
-            $delta.v.over = (Math.abs(dist_check) > $conf.distMin) ? true : false;
+            $delta.v.over = (Math.abs(dist_check) > $conf.distMin);
 
             return true;
         }
@@ -309,30 +237,27 @@ function Swiper(params) {
         }
     }
 
-
-
-    // Pass this two three-item arrays. Each array must contain a
-    // value in its 0th spot, direction names in its 1st and 2nd.
-    // The 1st direction should be the result when the direction is
+    // checkDirection :: (nav, nav) -> dir
+    // nav = [int, string, string]
+    // dir = [int, string]
+    // Pass this two three-item arrays. Each array must contain an
+    // integer in its 0th spot, direction names in its 1st and 2nd.
+    // The 1st direction should be the result when the integer is
     // negative (left, up). It returns a two-item array containing,
     // 0th, the greater distance, and, 1st, the matching direction.
     function checkDirection(dirA, dirB) {
         if (Math.abs(dirB[0]) < Math.abs(dirA[0])) {
             return [dirA[0], (dirA[0] < 0) ? dirA[1] : dirA[2]];
-        }
-        else {
+        } else {
             return [dirB[0], (dirB[0] < 0) ? dirB[1] : dirB[2]];
         }
     }
 
 
-
-
-
     /*
      * Event-related functions.
      */
-
+    // addListeners :: Element -> void
     function addListeners(elem) {
         elem.addEventListener('touchstart', handleTouchStart, false);
         elem.addEventListener('mousedown', handleMouseDown, false);
@@ -347,7 +272,7 @@ function Swiper(params) {
         elem.addEventListener('mouseout', handleMouseOut, false);
     }
 
-
+    // removeListeners :: Element -> void
     function removeListeners(elem) {
         elem.removeEventListener('touchstart', handleTouchStart);
         elem.removeEventListener('mousedown', handleMouseDown);
@@ -362,38 +287,38 @@ function Swiper(params) {
         elem.removeEventListener('mouseout', handleMouseOut);
     }
 
-
+    // checkEvent :: Event -> Event
     function checkEvent(evt) {
         if (!evt) {var evt = window.event;}
         evt.stopPropagation();
         return evt;
     }
 
-
+    // handleTouchEnd :: Event -> void
     function handleTouchStart(evt) {
         evt = checkEvent(evt);
         evt.preventDefault();
         startSwipe(evt.changedTouches[0]);
     }
 
-
+    // handleMouseOut :: Event -> void
     function handleMouseDown(evt) {
         evt = checkEvent(evt);
         evt.preventDefault();
         startSwipe(evt);
     }
 
-
+    // handleTouchMove :: Event -> void
     function handleTouchMove(evt) {
         evt = checkEvent(evt);
-        evt.preventDefault();
+        // evt.preventDefault();
 
         // Send the touch object instead of the event. Touch objects
         // have `client(X|Y)` properties, which `trackChanges` needs.
         trackSwipe(evt.changedTouches[0]);
     }
 
-
+    // handleMouseMove :: Event -> void
     function handleMouseMove(evt) {
         if (isDragging($conf.target)) {
             evt = checkEvent(evt);
@@ -402,19 +327,19 @@ function Swiper(params) {
         }
     }
 
-
+    // handleTouchEnd :: Event -> void
     function handleTouchEnd(evt) {
         endSwipe(checkEvent(evt));
     }
 
-
+    // handleMouseUp :: Event -> void
     function handleMouseUp(evt) {
         if (isDragging($conf.target)) {
             endSwipe(checkEvent(evt));
         }
     }
 
-
+    // handleMouseOut :: Event -> void
     function handleMouseOut(evt) {
         evt = checkEvent(evt);
 
@@ -425,21 +350,12 @@ function Swiper(params) {
     }
 
 
-
-
-
     /*
      * Utility functions.
      */
 
+    // mergeObjects :: (object, object) -> object
     function mergeObjects(obj1, obj2) {
-        if ($conf.log) {
-            console.log('Merging this object:');
-            console.log(obj1);
-            console.log('with this one:');
-            console.log(obj2);
-        }
-
         var merged = { };
 
         for (var key in obj1) {
@@ -463,43 +379,22 @@ function Swiper(params) {
         return merged;
     }
 
-
-
-    // function shouldPreventDefault(evt) {
-    //     var tagName = evt.target.tagName;
-
-    //     // This could be expanded.
-    //     var badTags = ['IMG'];
-
-    //     for (var i = 0; i < badTags.length; i++) {
-    //         if (badTags[i] == tagName) {
-    //             return true;
-    //         }
-    //     }
-
-    //     return false;
-    // }
-
-
-
+    // setElemDraggable :: Element -> void
     function setElemDraggable(elem) {
         elem.setAttribute('draggable', 'draggable');
     }
 
-
-
+    // unsetElemDraggable :: Element -> void
     function unsetElemDraggable(elem) {
         elem.removeAttribute('draggable');
     }
 
-
-
+    // isDragging :: Element -> bool
     function isDragging(elem) {
         return (elem.getAttribute('draggable'));
     }
 
-
-
+    // isMouseOffTarget :: (Event, Element) -> bool
     function isMouseOffTarget(evt, elem) {
         var targ = null;
 
@@ -522,9 +417,6 @@ function Swiper(params) {
     }
 
 
-
-
-
     // This needs to stay down here.
-    return init(params);
+    return init(args);
 }

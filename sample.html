@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+    <head>
+        <style>
+         * {
+             -moz-box-sizing: border-box;
+             -webkit-box-sizing: border-box;
+             box-sizing: border-box;
+         }
+
+         body {
+             position: relative;
+             margin: 0;
+             padding: 0;
+         }
+
+         .swiper__wrap {
+             position: absolute;
+             top: 5vh;
+             left: 5vw;
+             width: 90vw;
+             height: 90vh;
+             background-color: hsl(180, 50%, 50%);
+         }
+
+         .copy__wrap {
+             position: absolute;
+             top: 50%;
+             left: 50%;
+             transform: translate(-50%, -50%);
+             text-align: center;
+         }
+
+         .copy__directions {
+             margin: 0 auto 20px auto;
+             padding: 0;
+             font-size: 42px;
+             line-height: 100%;
+             font-weight: 500;
+         }
+
+         .copy__note {
+             margin: 20px auto 0 auto;
+             font-size: 21px;
+         }
+        </style>
+
+
+        <script type="text/javascript" src="swiper.js"></script>
+
+        <script>
+         function init() {
+             var _swiper = new Swiper({
+                 target: document.getElementById('swiper__wrap'),
+                 onDrag: function(swipe) {
+                     document.getElementById('copy__note').innerHTML = "Swiping " + swipe.v.run;
+                 },
+                 onEnd: function(swipe) {
+                     document.getElementById('copy__note').innerHTML = "Swiped " + swipe.v.mag + " overall";
+                 },
+             });
+         }
+
+         window.onload = init;
+        </script>
+    </head>
+
+    <body>
+        <div class="swiper__wrap" id="swiper__wrap">
+            <div class="copy__wrap">
+                <h3 class="copy__directions">click & drag or swipe in me</h3>
+                <p class="copy__note" id="copy__note">Not swiping</p>
+            </div>
+        </div>
+    </body>
+</html>
